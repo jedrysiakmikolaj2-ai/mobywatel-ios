@@ -15,10 +15,19 @@ jobs:
 
       - name: Kompilacja kodu do IPA
         run: |
-          mkdir -p build/Artifact
-          xcodebuild -project App/App.xcodeproj -scheme "App" -configuration Release -sdk iphoneos -allowProvisioningUpdates CODE_SIGNING_ALLOWED=NO || xcodebuild -project *.xcodeproj -scheme "mObywatel" -configuration Release -sdk iphoneos -allowProvisioningUpdates CODE_SIGNING_ALLOWED=NO || true
-          mv build/Release-iphoneos/*.app build/Artifact/ || mv App/build/Release-iphoneos/*.app build/Artifact/ || true
-          cd build && zip -r mObywatel.ipa Artifact || true
+          mkdir -p build
+          xcodebuild -project App.xcodeproj -scheme "App" -configuration Release -sdk iphoneos CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO clean build || xcodebuild -project App/App.xcodeproj -scheme "App" -configuration Release -sdk iphoneos CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO clean build || true
+          
+          # Szukanie i pakowanie pliku .app do .ipa
+          APP_PATH=$(find . -name "*.app" -print -quit)
+          if [ -n "$APP_PATH" ]; then
+            mkdir -p Payload
+            cp -r "$APP_PATH" Payload/
+            zip -r build/mObywatel.ipa Payload
+          else
+            echo "Nie znaleziono skompilowanej aplikacji!"
+            exit 1
+          fi
 
       - name: Wypluj gotowy plik IPA
         uses: actions/upload-artifact@v4
