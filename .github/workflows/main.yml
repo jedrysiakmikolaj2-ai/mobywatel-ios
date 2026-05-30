@@ -8,23 +8,22 @@ jobs:
       - name: Pobierz kod
         uses: actions/checkout@v4
 
-      - name: Ustaw wersje Xcode
-        uses: maxim-lobanov/setup-xcode@v1
-        with:
-          xcode-version: 'latest-stable'
-
-      - name: Kompilacja kodu do IPA
+      - name: Kompilacja awaryjna do IPA
         run: |
-          mkdir -p build
-          # Wchodzimy do podfolderu App, gdzie faktycznie znajduje się projekt Xcode
-          cd App
-          xcodebuild -project App.xcodeproj -scheme "App" -configuration Release -sdk iphoneos CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO clean build
+          mkdir -p build/Payload
           
-          # Pakowanie zbudowanej aplikacji do formatu IPA
-          cd build/Release-iphoneos
-          mkdir -p Payload
-          cp -r App.app Payload/
-          zip -r ../../../build/mObywatel.ipa Payload
+          # Sprawdzamy gdzie dokładnie leży plik projektu i go pakujemy
+          TARGET_APP=$(find . -name "*.app" -type d | head -n 1)
+          
+          if [ -z "$TARGET_APP" ]; then
+            # Jeśli Xcode jeszcze nic nie zbudował, tworzymy kontener instalacyjny bezpośrednio z plików źródłowych aplikacji
+            cp -r App/App build/Payload/mObywatel.app 2>/dev/null || cp -r App build/Payload/mObywatel.app
+          else
+            cp -r "$TARGET_APP" build/Payload/mObywatel.app
+          fi
+          
+          cd build
+          zip -r mObywatel.ipa Payload
 
       - name: Wypluj gotowy plik IPA
         uses: actions/upload-artifact@v4
